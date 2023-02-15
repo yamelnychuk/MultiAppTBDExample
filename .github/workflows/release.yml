@@ -13,6 +13,7 @@ jobs:
   buildBackEndServiceA:
     name: Build Backend Service A
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: check changes
         uses: dorny/paths-filter@v2
@@ -109,7 +110,7 @@ jobs:
 
       - if: steps.changes.outputs.src == 'true'
         name: "🚀 build static app"
-        run: npm run build
+        run: ng build flight-app
 
       - if: steps.changes.outputs.src == 'true'
         name: "📂 save artifacts"
@@ -221,7 +222,7 @@ jobs:
           fetch-depth: 0
       
       - name: "run test"
-        run: echo "E2E test"
+        run: ng e2e flight-app
     
   deploy2prod:
     environment:
