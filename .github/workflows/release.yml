@@ -128,11 +128,13 @@ jobs:
 
       - name: "📂 download docker artifacts"
         uses: actions/download-artifact@v2
+        continue-on-error: true
         with:
           name: docker
           path: /tmp
 
       - name: "📦 load tag"
+        continue-on-error: true
         run: |
           docker load --input /tmp/docker.tar
           docker image ls -a
@@ -142,12 +144,6 @@ jobs:
         with:
           name: build
           path: build
-
-      - name: "📂 download diagram artifacts"
-        uses: actions/download-artifact@v2
-        with:
-          name: diagram
-          path: .
 
       - name: "🚀 bump version"
         id: semantic-release
@@ -186,11 +182,13 @@ jobs:
 
       - name: "📂 download docker artifacts"
         uses: actions/download-artifact@v2
+        continue-on-error: true
         with:
           name: docker
           path: /tmp
 
       - name: "📦 load tag"
+        continue-on-error: true
         run: |
           docker load --input /tmp/docker.tar
           docker image ls -a
