@@ -24,6 +24,9 @@ jobs:
 
       - name: "🔧 install npm@latest"
         run: npm i -g npm@latest
+      
+      - name: "🔧 install @angular/cli"
+        run: npm install -g @angular/cli
 
       - name: "📦 install dependencies"
         uses: bahmutov/npm-install@v1

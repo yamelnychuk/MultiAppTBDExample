@@ -21,7 +21,7 @@ jobs:
         with:
           filters: |
             src:
-              - 'src/**'
+              - 'apps/flight-app/**'
 
       - if: steps.changes.outputs.src == 'true'
         name: "☁️ checkout repository"
@@ -92,6 +92,10 @@ jobs:
       - if: steps.changes.outputs.src == 'true'
         name: "🔧 install npm@latest"
         run: npm i -g npm@latest
+      
+      - if: steps.changes.outputs.src == 'true'
+        name: "🔧 install @angular/cli"
+        run: npm install -g @angular/cli
 
       - if: steps.changes.outputs.src == 'true'
         name: "📦 install dependencies"
