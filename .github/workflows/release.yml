@@ -124,6 +124,7 @@ jobs:
       url: https://github.com/${{ github.repository }}/releases/tag/${{ steps.semantic-release.outputs.release-tag }}
     name: Deploy development
     needs:
+      - test
       - buildBackEndServiceA
       - buildFrontEndServiceA
     runs-on: ubuntu-latest
