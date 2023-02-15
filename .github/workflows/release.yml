@@ -6,35 +6,49 @@ on:
       - main
 
 jobs:
-  test:
-    name: Test and lint
-    uses: yamelnychuk/MultiAppTBDExample/.github/workflows/development.yml@main
-
-  docker:
-    name: Build container
+  buildBackEndServiceA:
+    name: Build Backend Service A
     runs-on: ubuntu-latest
     steps:
-      - name: "☁️ checkout repository"
+      - name: check changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'src/**'
+
+      - if: steps.changes.outputs.src == 'true'
+        name: "☁️ checkout repository"
         uses: actions/checkout@v2
 
-      - name: "🔧 setup buildx"
+      - if: steps.changes.outputs.src == 'true'
+        name: "🔍 test and lint"
+        uses: yamelnychuk/MultiAppTBDExample/.github/workflows/development.yml@main
+      
+      - if: steps.changes.outputs.src == 'true'
+        name: "🔧 setup buildx"
         uses: docker/setup-buildx-action@v1
-
-      - name: "🔧 cache docker layers"
+      
+      - if: steps.changes.outputs.src == 'true'
+        name: "🔧 cache docker layers"
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
-      - name: "🔧 docker meta"
+      
+      - if: steps.changes.outputs.src == 'true'
+        name: "🔧 docker meta"
         id: meta
         uses: docker/metadata-action@v3
         with:
           images: ${{ github.repository }}
           tags: latest
 
-      - name: "📦 docker build"
+      - if: steps.changes.outputs.src == 'true'
+        name: "📦 docker build"
         uses: docker/build-push-action@v2
         with:
           context: .
@@ -45,31 +59,45 @@ jobs:
           cache-from: type=gha, scope=${{ github.workflow }}
           cache-to: type=gha, scope=${{ github.workflow }}
 
-      - name: "📂 docker artifacts"
+      - if: steps.changes.outputs.src == 'true'
+        name: "📂 docker artifacts"
         uses: actions/upload-artifact@v2
         with:
           name: docker
           path: /tmp/docker.tar
 
-  build:
-    name: Build application
+  buildFrontEndServiceA:
+    name: Build Frontend Service A
     runs-on: ubuntu-latest
     steps:
-      - name: "☁️ checkout repository"
+      - name: check changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'src/**'
+
+      - if: steps.changes.outputs.src == 'true'
+        name: "☁️ checkout repository"
         uses: actions/checkout@v2
 
-      - name: "🔧 setup node"
+      - if: steps.changes.outputs.src == 'true'
+        name: "🔧 setup node"
         uses: actions/setup-node@v2.1.5
         with:
           node-version: 16
 
-      - name: "🔧 install npm@latest"
+      - if: steps.changes.outputs.src == 'true'
+        name: "🔧 install npm@latest"
         run: npm i -g npm@latest
 
-      - name: "📦 install dependencies"
+      - if: steps.changes.outputs.src == 'true'
+        name: "📦 install dependencies"
         uses: bahmutov/npm-install@v1
 
-      - name: "📊 repository visualizer"
+      - if: steps.changes.outputs.src == 'true'
+        name: "📊 repository visualizer"
         id: diagram
         uses: githubocto/repo-visualizer@0.7.1
         with:
@@ -79,24 +107,25 @@ jobs:
           root_path: "src/"
           artifact_name: "diagram"
 
-      - name: "🚀 static app"
+      - if: steps.changes.outputs.src == 'true'
+        name: "🚀 build static app"
         run: npm run build
 
-      - name: "📂 production artifacts"
+      - if: steps.changes.outputs.src == 'true'
+        name: "📂 save artifacts"
         uses: actions/upload-artifact@v2
         with:
           name: build
           path: build
 
-  release:
+  deploy2dev:
     environment:
-      name: production
+      name: development
       url: https://github.com/${{ github.repository }}/releases/tag/${{ steps.semantic-release.outputs.release-tag }}
-    name: Semantic release
+    name: Deploy development
     needs:
-      - test
-      - docker
-      - build
+      - buildBackEndServiceA
+      - buildFrontEndServiceA
     runs-on: ubuntu-latest
     steps:
       - name: "☁️ checkout repository"
@@ -114,6 +143,7 @@ jobs:
         run: |
           docker load --input /tmp/docker.tar
           docker image ls -a
+
       - name: "📂 download build artifacts"
         uses: actions/download-artifact@v2
         with:
@@ -126,22 +156,128 @@ jobs:
           name: diagram
           path: .
 
-      - name: "🚀 release"
+      - name: "🚀 bump version"
         id: semantic-release
-        uses: open-sauced/semantic-release-conventional-config@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+  
+  integrationTest:
+    name: Integration test
+    needs:
+      - deploy2dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      
+      - name: "run test"
+        run: echo "Integration test"
+
+  deploy2stage:
+    environment:
+      name: staging
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ steps.semantic-release.outputs.release-tag }}
+    name: Deploy staging
+    needs:
+      - deploy2dev
+      - integrationTest
+    runs-on: ubuntu-latest
+    steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: "📂 download docker artifacts"
+        uses: actions/download-artifact@v2
+        with:
+          name: docker
+          path: /tmp
+
+      - name: "📦 load tag"
+        run: |
+          docker load --input /tmp/docker.tar
+          docker image ls -a
+
+      - name: "📂 download build artifacts"
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+    
+  e2eTest:
+    name: End-to-end test
+    needs:
+      - deploy2stage
+    runs-on: ubuntu-latest
+    steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      
+      - name: "run test"
+        run: echo "E2E test"
+    
+  deploy2prod:
+    environment:
+      name: production
+      url: https://github.com/${{ github.repository }}/releases/tag/${{ steps.semantic-release.outputs.release-tag }}
+    name: Deploy production
+    needs:
+      - deploy2stage
+      - e2eTest
+    runs-on: ubuntu-latest
+    steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: "📂 download docker artifacts"
+        uses: actions/download-artifact@v2
+        with:
+          name: docker
+          path: /tmp
+
+      - name: "📦 load tag"
+        run: |
+          docker load --input /tmp/docker.tar
+          docker image ls -a
+
+      - name: "📂 download build artifacts"
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: build
+    
+  smokeTest:
+    name: Smoke test
+    needs:
+      - deploy2prod
+    runs-on: ubuntu-latest
+    steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      
+      - name: "run test"
+        run: echo "Smoke test"
 
   cleanup:
     name: Cleanup actions
     needs:
-      - release
+      - deploy2prod
+      - smokeTest
     runs-on: ubuntu-latest
     steps:
       - name: "♻️ remove build artifacts"
         uses: geekyeggo/delete-artifact@v1
         with:
           name: |
-            build
-            docker
-            diagram
+            buildBackEndServiceA
+            buildFrontEndServiceA

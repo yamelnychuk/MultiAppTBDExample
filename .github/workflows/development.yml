@@ -31,9 +31,6 @@ jobs:
       - name: "🔍 run tests"
         run: npm t
 
-      - name: "🔍 run sonarqube"
-        run: echo "Sonarqube SAST checks"
-
   lint:
     name: Code standards
     runs-on: ubuntu-latest
