@@ -197,7 +197,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: build
-          path: build
+          path: dist/apps/flight-app
     
   e2eTest:
     name: End-to-end test
@@ -243,7 +243,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: build
-          path: build
+          path: dist/apps/flight-app
     
   smokeTest:
     name: Smoke test
