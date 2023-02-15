@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v2
+      
       - name: check changes
         uses: dorny/paths-filter@v2
         id: changes
@@ -22,10 +25,6 @@ jobs:
           filters: |
             src:
               - 'apps/flight-app/**'
-
-      - if: steps.changes.outputs.src == 'true'
-        name: "☁️ checkout repository"
-        uses: actions/checkout@v2
       
       - if: steps.changes.outputs.src == 'true'
         name: "🔧 setup buildx"
@@ -71,17 +70,16 @@ jobs:
     name: Build Frontend Service A
     runs-on: ubuntu-latest
     steps:
+      - name: "☁️ checkout repository"
+        uses: actions/checkout@v2
+      
       - name: check changes
         uses: dorny/paths-filter@v2
         id: changes
         with:
           filters: |
             src:
-              - 'src/**'
-
-      - if: steps.changes.outputs.src == 'true'
-        name: "☁️ checkout repository"
-        uses: actions/checkout@v2
+              - 'apps/flight-app/**'
 
       - if: steps.changes.outputs.src == 'true'
         name: "🔧 setup node"
